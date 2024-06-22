@@ -1,23 +1,59 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract ErrorHandlingContract {
-    uint256 public value;
+contract SimpleVotingSystem {
+    struct Candidate {
+        string name;
+        uint256 voteCount;
+    }
 
-    function setValue(uint256 _newValue) public {
-        // Using require() for input validation
-        require(_newValue > 0, "Input value must be greater than zero");
+    mapping(address => bool) public hasVoted;
+    mapping(uint256 => Candidate) public candidates;
+    uint256 public candidateCount;
+    address public admin;
 
-        // Using assert() for internal state validation
-        uint256 newValue = value + _newValue;
-        assert(newValue > value);
+    constructor() {
+        admin = msg.sender;
+    }
 
-        // Using revert() to revert the transaction
-        if (_newValue == 42) {
-            revert("Cannot set value to 42");
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only the admin can perform this action");
+        _;
+    }
+
+    function addCandidate(string memory _name) public onlyAdmin {
+        require(bytes(_name).length > 0, "Candidate name cannot be empty");
+
+        candidateCount++;
+        candidates[candidateCount] = Candidate(_name, 0);
+    }
+
+    function vote(uint256 _candidateId) public {
+        require(!hasVoted[msg.sender], "You have already voted");
+        require(_candidateId > 0 && _candidateId <= candidateCount, "Invalid candidate ID");
+
+        candidates[_candidateId].voteCount++;
+        hasVoted[msg.sender] = true;
+
+        // Using assert to ensure the vote count has increased
+        assert(candidates[_candidateId].voteCount > 0);
+
+        // Using revert to prevent votes for a specific candidate (arbitrary condition)
+        if (_candidateId == 42) {
+            hasVoted[msg.sender] = false;
+            candidates[_candidateId].voteCount--;
+            revert("Cannot vote for candidate with ID 42");
         }
+    }
 
-        // Update the value if all conditions pass
-        value = newValue;
+    function getCandidate(uint256 _candidateId) public view returns (string memory name, uint256 voteCount) {
+        require(_candidateId > 0 && _candidateId <= candidateCount, "Invalid candidate ID");
+
+        Candidate memory candidate = candidates[_candidateId];
+        return (candidate.name, candidate.voteCount);
+    }
+
+    function getTotalCandidates() public view returns (uint256) {
+        return candidateCount;
     }
 }
