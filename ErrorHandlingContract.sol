@@ -56,4 +56,11 @@ contract SimpleVotingSystem {
     function getTotalCandidates() public view returns (uint256) {
         return candidateCount;
     }
+
+    // Function to reset voting state, callable only by the admin
+    function resetVotingState() external onlyAdmin {
+        for (uint256 i = 1; i <= candidateCount; i++) {
+            hasVoted[msg.sender] = false;
+        }
+    }
 }
